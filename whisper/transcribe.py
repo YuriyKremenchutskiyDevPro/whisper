@@ -1,7 +1,7 @@
 import argparse
 import os
 import warnings
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Callable, Tuple, Union
 
 import numpy as np
 import torch
@@ -47,6 +47,7 @@ def transcribe(
     word_timestamps: bool = False,
     prepend_punctuations: str = "\"'“¿([{-",
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
+    segment_callback: Callable[[Tuple[float, float, str]], None],
     **decode_options,
 ):
     """
@@ -202,11 +203,14 @@ def transcribe(
     ):
         tokens = tokens.tolist()
         text_tokens = [token for token in tokens if token < tokenizer.eot]
+        text = tokenizer.decode(text_tokens)
+        if segment_callback is not None:
+            segment_callback((start, end, text))
         return {
             "seek": seek,
             "start": start,
             "end": end,
-            "text": tokenizer.decode(text_tokens),
+            "text": text,
             "tokens": tokens,
             "temperature": result.temperature,
             "avg_logprob": result.avg_logprob,
